@@ -32,8 +32,6 @@ export class PaymentsController {
 
   @Post('webhook')
   async stripeWebhook(@Req() req: Request, @Res() res: Response) {
-    this.logger.log(`Webhook called. Req: ${req}. Res: ${res}`);
-
     return this.paymentsService.stripeWebhook(req, res);
   }
 }
