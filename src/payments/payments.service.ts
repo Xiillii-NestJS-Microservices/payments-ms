@@ -10,7 +10,7 @@ export class PaymentsService {
   private readonly stripe = new Stripe(envs.stripeSecret);
 
   async createPaymentSession(paymentSessionDto: PaymentSessionDto) {
-    const { currency, items } = paymentSessionDto;
+    const { currency, items, orderId } = paymentSessionDto;
 
     const lineItems = items.map((item) => {
       return {
@@ -27,7 +27,9 @@ export class PaymentsService {
     const session = await this.stripe.checkout.sessions.create({
       // TODO: Colocar aqui el ID de mi ordern
       payment_intent_data: {
-        metadata: {},
+        metadata: {
+          orderId: orderId,
+        },
       },
       line_items: lineItems,
       mode: 'payment',
@@ -39,7 +41,6 @@ export class PaymentsService {
   }
 
   async stripeWebhook(req: Request, res: Response) {
-    this.logger.log('StripeWebhook called');
     const sig = req.headers['stripe-signature'];
 
     let event: Stripe.Event;
@@ -64,8 +65,10 @@ export class PaymentsService {
 
     switch (event.type) {
       case 'charge.succeeded':
+        const chargeSucceeded = event.data.object;
+
         // TODO: llamar nuestro microservicio
-        this.logger.log({ event });
+
         break;
       default:
         this.logger.log(`Event ${event.type} not handled`);
