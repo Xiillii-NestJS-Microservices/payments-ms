@@ -68,7 +68,10 @@ export class PaymentsService {
         const chargeSucceeded = event.data.object;
 
         // TODO: llamar nuestro microservicio
-
+        this.logger.log({
+          metadata: chargeSucceeded.metadata,
+          orderId: chargeSucceeded.metadata.orderId,
+        });
         break;
       default:
         this.logger.log(`Event ${event.type} not handled`);
