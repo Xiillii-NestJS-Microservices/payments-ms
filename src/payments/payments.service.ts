@@ -1,13 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { envs } from 'src/config';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { envs, NATS_SERVICE } from 'src/config';
 import Stripe from 'stripe';
 import { PaymentSessionDto } from './dto/payment-session.dto';
 import { Request, Response } from 'express';
+import { ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger('Payment Service');
   private readonly stripe = new Stripe(envs.stripeSecret);
+
+  constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {}
 
   async createPaymentSession(paymentSessionDto: PaymentSessionDto) {
     const { currency, items, orderId } = paymentSessionDto;
@@ -67,11 +70,14 @@ export class PaymentsService {
       case 'charge.succeeded':
         const chargeSucceeded = event.data.object;
 
-        // TODO: llamar nuestro microservicio
-        this.logger.log({
-          metadata: chargeSucceeded.metadata,
+        const payload = {
+          stripePaymentId: chargeSucceeded.id,
           orderId: chargeSucceeded.metadata.orderId,
-        });
+          receipUrl: chargeSucceeded.receipt_url,
+        };
+
+        // emit not expect a response, only sends the payload
+        this.client.emit('payment.succeeded', payload);
         break;
       default:
         this.logger.log(`Event ${event.type} not handled`);
