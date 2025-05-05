@@ -70,11 +70,14 @@ export class PaymentsService {
       case 'charge.succeeded':
         const chargeSucceeded = event.data.object;
 
-        // TODO: llamar nuestro microservicio
-        this.logger.log({
-          metadata: chargeSucceeded.metadata,
+        const payload = {
+          stripePaymentId: chargeSucceeded.id,
           orderId: chargeSucceeded.metadata.orderId,
-        });
+          receipUrl: chargeSucceeded.receipt_url,
+        };
+
+        // emit not expect a response, only sends the payload
+        this.client.emit('payment.succeeded', payload);
         break;
       default:
         this.logger.log(`Event ${event.type} not handled`);
