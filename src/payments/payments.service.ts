@@ -73,11 +73,12 @@ export class PaymentsService {
         const payload = {
           stripePaymentId: chargeSucceeded.id,
           orderId: chargeSucceeded.metadata.orderId,
-          receipUrl: chargeSucceeded.receipt_url,
+          receiptUrl: chargeSucceeded.receipt_url,
         };
 
         // emit not expect a response, only sends the payload
         this.client.emit('payment.succeeded', payload);
+
         break;
       default:
         this.logger.log(`Event ${event.type} not handled`);
