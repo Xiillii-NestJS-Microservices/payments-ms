@@ -1,0 +1,49 @@
+## Dependencies
+FROM node:21-alpine3.20 AS deps
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+RUN npm install
+
+
+
+
+## Builder
+FROM node:21-alpine3.20 AS build
+
+WORKDIR /usr/src/app
+
+# Copy from deps, the node modules
+COPY --from=deps /usr/src/app/node_modules ./node_modules
+
+# Copy the application code
+COPY . .
+
+# RUN npm run test
+RUN npm run build
+
+RUN attempt=1; \
+  while [ $attempt -le 3 ]; do \
+  npm ci -f --only=production && npm cache clean --force && break; \
+  echo "Intento $attempt falló. Reintentando en 5 segundos..." && sleep 5; \
+  attempt=$((attempt+1)); \
+  done
+
+
+## Docker image creation
+FROM node:21-alpine3.20 AS prod
+
+WORKDIR /usr/src/app
+
+COPY --from=build /usr/src/app/node_modules ./node_modules
+COPY --from=build /usr/src/app/dist ./dist
+
+ENV NODE_ENV=production
+
+USER node
+
+EXPOSE 3000
+
+CMD [ "node", "dist/main.js" ]
